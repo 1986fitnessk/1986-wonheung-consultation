@@ -9,3 +9,25 @@ const lessonImages=[
 function lines(id,value){const el=document.getElementById(id);el.replaceChildren();value.split('|').forEach((text,i)=>{if(i)el.append(document.createElement('br'));el.append(document.createTextNode(text));});}
 document.querySelectorAll('[data-program]').forEach(button=>button.addEventListener('click',()=>{const n=Number(button.dataset.program),p=programs[n];document.querySelectorAll('[data-program]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));const lessonImage=document.getElementById('lesson-image');lessonImage.src=lessonImages[n].src;lessonImage.alt=lessonImages[n].alt;lines('program-type',p.type);lines('program-name',p.name);lines('program-slogan',p.slogan);lines('program-target',p.target);lines('program-description',p.description);lines('program-note',p.note);lines('program-reassurance',extras[n].reassurance);lines('program-takeaway',extras[n].takeaway);const list=document.getElementById('program-steps');list.replaceChildren(...p.steps.map((text,i)=>{const li=document.createElement('li'),span=document.createElement('span');span.textContent=String(i+1).padStart(2,'0');li.append(span,document.createTextNode(text));return li;}));const panel=document.getElementById('program-panel');panel.classList.remove('changing');requestAnimationFrame(()=>panel.classList.add('changing'));}));
 const progress=document.querySelector('.reading');let queued=false;function updateProgress(){const total=document.documentElement.scrollHeight-innerHeight;progress.style.width=`${total>0?Math.min(100,scrollY/total*100):0}%`;queued=false;}addEventListener('scroll',()=>{if(!queued){queued=true;requestAnimationFrame(updateProgress);}},{passive:true});addEventListener('resize',updateProgress);updateProgress();
+
+// Consultation state is intentionally ephemeral: no storage or network requests.
+const goalButtons=[...document.querySelectorAll('[data-goal]')];
+function updateGoals(){
+ const selected=goalButtons.filter(b=>b.getAttribute('aria-pressed')==='true').map(b=>b.dataset.goal);
+ document.getElementById('summary-goals').textContent=selected.length?selected.join(' · '):'상담에서 운동 목적을 함께 확인해 주세요.';
+ document.getElementById('goal-response').textContent=selected.length?`${selected.join(' · ')}에 관심이 있으시군요. 지금의 운동 경험과 방문 가능한 시간도 함께 살펴볼게요.`:'선택하지 않아도 상담을 이어갈 수 있습니다.';
+}
+goalButtons.forEach(button=>button.addEventListener('click',()=>{button.setAttribute('aria-pressed',String(button.getAttribute('aria-pressed')!=='true'));updateGoals();}));
+const paths=[...document.querySelectorAll('[name="consult-path"]')];
+const nextSteps=['회원권 이용 조건을 확인한 뒤, 등록 여부와 첫 방문·측정 일정을 함께 정합니다.','회원권 조건과 PT의 별도 가격·예약 가능 시간을 확인한 뒤, 원하는 이용 범위를 정합니다.','더 궁금한 내용을 확인하고, 오늘 결정할지 충분히 살펴본 뒤 결정할지 함께 정합니다.'];
+paths.forEach((input,i)=>input.addEventListener('change',()=>{if(input.checked)document.getElementById('next-step-text').textContent=nextSteps[i];}));
+const reviewChecks=[...document.querySelectorAll('.review-checks input')];
+function updateReview(){document.getElementById('review-status').textContent=`확인한 항목 ${reviewChecks.filter(c=>c.checked).length}개 · 체크는 등록이나 결제를 진행하지 않습니다.`;}
+reviewChecks.forEach(input=>input.addEventListener('change',updateReview));
+document.getElementById('reset-consult').addEventListener('click',()=>{
+ goalButtons.forEach(b=>b.setAttribute('aria-pressed','false'));paths.forEach(i=>i.checked=false);reviewChecks.forEach(i=>i.checked=false);updateGoals();updateReview();
+ document.getElementById('next-step-text').textContent='이용 방법을 선택하면 다음 상담 순서를 볼 수 있습니다.';
+ document.querySelectorAll('details').forEach(d=>d.open=false);
+ document.querySelector('[data-program="0"]').click();
+ goalButtons[0].focus({preventScroll:true});document.getElementById('start').scrollIntoView({behavior:'auto'});
+});
